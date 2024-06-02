@@ -27,7 +27,7 @@ def main(
 ):
     # load model, tokenizer
     model_path = "models/gemma-2b-it"
-    model, tokenizer = utils.load_model(model_path)
+    model, tokenizer = utils.load_model_lora(model_path)
 
     # load dataset
     dataset_name = 'CarperAI/openai_summarize_tldr'
@@ -61,11 +61,10 @@ def main(
     training_args = TrainingArguments(
         output_dir=output_dir,
         per_device_train_batch_size=train_batch_size,
-        # per_device_eval_batch_size=1,
-        # eval_strategy="steps",
-        # eval_steps=10,
+        per_device_eval_batch_size=1,
+        optim="adamw_8bit", # good for quantize
         bf16=True,
-        learning_rate=5e-5,
+        learning_rate=2e-4,
         lr_scheduler_type='cosine',
         warmup_ratio=0.1,
         logging_steps=20,

@@ -1,0 +1,114 @@
+import torch
+import os
+import transformers
+from tokenizers import AddedToken
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from peft import LoraConfig, get_peft_model
+
+def load_model(model_name_or_path, device_map="cuda:0", use_chatml_template=False, multi_gpu=False):
+    print("Loading tokenizer and model from:", model_name_or_path)
+    
+    # load tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name_or_path,
+        use_fast=True, # fast load tokenizer
+        padding_side='right' # custom for rotary position embedding
+    )
+    if use_chatml_template:
+        # Apply chatml template
+        tokenizer.chat_template = "{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
+    
+        # Add additional token to ensure tokenizer don't create new sub_token
+        tokenizer.add_tokens([AddedToken("<|im_start|>"), AddedToken("<|im_end|>")])
+
+    # set device for multi GPU
+    if multi_gpu:
+        local_rank = os.environ["LOCAL_RANK"]
+        device_map = f"cuda:{local_rank}"
+        
+    # load model
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name_or_path,
+        torch_dtype=torch.bfloat16,
+        device_map=device_map,
+        attn_implementation="flash_attention_2" # enable flash attention
+    )
+
+    # resize tokenizer length
+    model.resize_token_embeddings(len(tokenizer))
+    
+    return model, tokenizer
+
+def load_model_lora(model_name_or_path, device_map="cuda:0", use_chatml_template=False, multi_gpu=False):
+    print("Loading tokenizer and model from:", model_name_or_path)
+    
+    # load tokenizer
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_name_or_path,
+        use_fast=True, # fast load tokenizer
+        padding_side='right' # custom for rotary position embedding
+    )
+
+    # apply chat template
+    if use_chatml_template:
+        # Apply chatml template
+        tokenizer.chat_template = "{% if not add_generation_prompt is defined %}{% set add_generation_prompt = false %}{% endif %}{% for message in messages %}{{'<|im_start|>' + message['role'] + '\n' + message['content'] + '<|im_end|>' + '\n'}}{% endfor %}{% if add_generation_prompt %}{{ '<|im_start|>assistant\n' }}{% endif %}"
+    
+        # Add additional token to ensure tokenizer don't create new sub_token
+        tokenizer.add_tokens([AddedToken("<|im_start|>"), AddedToken("<|im_end|>")])
+
+    # BitsAndBytes config
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_use_double_quant=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16
+    )
+    
+    # set device for multi GPU
+    if multi_gpu:
+        local_rank = os.environ["LOCAL_RANK"]
+        device_map = f"cuda:{local_rank}"
+        
+    # load model
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name_or_path,
+        quantization_config=bnb_config,
+        device_map=device_map,
+        attn_implementation="flash_attention_2" # enable flash attention
+    )
+    # resize tokenizer length
+    model.resize_token_embeddings(len(tokenizer))
+
+    model.gradient_checkpointing_enable()
+    config = LoraConfig(
+        r=16, 
+        lora_alpha=16, 
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+        modules_to_save=["embed_tokens", "lm_head"],
+        lora_dropout=0.0, 
+        bias="none", 
+        task_type="CAUSAL_LM"
+    )
+    model = get_peft_model(model, config)
+    model.print_trainable_parameters()
+    
+    return model, tokenizer
+    
+def test_chat_template(tokenizer):
+    conversation = [{"role": "user", "content": "Hello!"}, 
+                    {"role": "assistant", "content": "Hi there! How can I help you today?"},
+                    {"role": "user", "content": "I need help with my computer."},
+                    {"role": "assistant", "content": "Sure, what's the problem?"}]
+
+    text = tokenizer.apply_chat_template(conversation, tokenize=False)
+    ids = tokenizer.apply_chat_template(conversation, return_tensors="pt")
+    print(tokenizer.convert_ids_to_tokens(ids[0]))
+    print(text)
+
+
+if __name__ == "__main__":
+    model_path = "models/gemma-2b-it"
+    model, tokenizer = load_model(model_path)
+    
+    test_chat_template(tokenizer)

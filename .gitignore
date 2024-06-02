@@ -1,3 +1,6 @@
 .ipynb_checkpoints/
 oscar.en.txt
 save_model/
+notebook/
+trains/
+__pycache__/
