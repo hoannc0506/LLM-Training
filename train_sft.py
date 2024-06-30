@@ -19,7 +19,10 @@ import utils
 import dataset_utils
 import fire
 
+os.environ["WANDB_PROJECT"]="LLM_FINETUNING"
+
 def main(
+    run_name="sft_gemma",
     train_batch_size = 2,
     max_seq_length = 2048,
     train_samples=5000,
@@ -27,7 +30,7 @@ def main(
 ):
     # load model, tokenizer
     model_path = "models/gemma-2b-it"
-    model, tokenizer = utils.load_model(model_path)
+    model, tokenizer = utils.load_model(model_path, mul)
 
     # load dataset
     dataset_name = 'CarperAI/openai_summarize_tldr'
@@ -55,7 +58,9 @@ def main(
         tokenizer=tokenizer,
         mlm=False
     )
-    output_dir = "trains/sft-summary-gemma"
+    
+    output_dir = f"trains/{run_name}"
+    os.makedirs(output_dir, exist_ok=True)
     
     # Training Arguments
     training_args = TrainingArguments(
@@ -73,7 +78,9 @@ def main(
         save_total_limit=3,
         num_train_epochs=2,
         ddp_find_unused_parameters=False,
-        group_by_length=True
+        group_by_length=True,
+        report_to="wandb",  # enable logging to W&B
+        run_name=run_name,  # name of the W&B run (optional)
     )
     
     # Trainer

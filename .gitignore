@@ -4,3 +4,5 @@ save_model/
 notebook/
 trains/
 __pycache__/
+unsloth/
+wandb/
