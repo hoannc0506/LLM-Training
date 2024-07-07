@@ -1,16 +1,20 @@
-# Finetune and align Llama-3 for summarization
+# Finetune and align LLM models
 
-## Efficient Fintune
+## LLM Efficient Fintuning
 - QLoRA
-- QLoRA with Unsloth
-- DDP and FSDP
+- DDP
 
-## Align
+## LLM Align
 - RLHF
 - DPO
 
 
-## Note
+## Notes
+- Train on 1 GPU
+```bash
+CUDA_VISIBLE_DEVICES=0 torchrun --nproc_per_node=1 --nnodes=1 train_sft_lora.py
+```
+
 - Config train DDP with accelerate
 ```bash
 export CUDA_VISIBLE_DEVICES=0,1
@@ -21,14 +25,13 @@ accelerate launch train_sft_lora.py --run_name "sft_lora_gemma_multigpu" --devic
 ```
 ![accerlerate config DDP](assets/accelerate_config_DDP.png)
 
-## Result
+## Results
 - Train SFT (not eval): ~ 30GB GPU
 - Train with QLoRA: ~15GB GPU
 - Train DDP: 2 GPU
 
-- 
 
 ## TODO
 - [ ] Evaluate SFT model and LoRA model
 - [ ] Public HF models
-- [ ] Train FSDP
+- [ ] Train FSDP (problem with accelerate)
