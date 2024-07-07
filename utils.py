@@ -4,7 +4,6 @@ import transformers
 from tokenizers import AddedToken
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
-from unsloth.unsloth import FastLanguageModel
 import fire
 
 def load_model(model_name_or_path, device_map="cuda", use_chatml_template=False):
@@ -90,56 +89,6 @@ def load_model_lora(model_name_or_path, device_map="cuda:0", use_chatml_template
         # resize tokenizer length
         model.resize_token_embeddings(len(tokenizer))
         
-    return model, tokenizer
-
-
-def load_model_lora_unsloth(model_name_or_path, max_seq_length=2048, device_map="cuda:0", use_chatml_template=False):
-    print("Loading tokenizer and model with unsloth:", model_name_or_path)
-    # # load tokenizer
-    # tokenizer = AutoTokenizer.from_pretrained(
-    #     model_name_or_path,
-    #     use_fast=True, # fast load tokenizer
-    #     padding_side='right' # custom for rotary position embedding
-    # )
-    
-    # set device for multi GPU
-    if device_map=="all":
-        local_rank = os.environ["LOCAL_RANK"]
-        device_map = f"cuda:{local_rank}"
-    
-    # load model by unsloth
-    model, tokenizer = FastLanguageModel.from_pretrained(
-        model_name=model_name_or_path,
-        max_seq_length=max_seq_length,
-        dtype=None,
-        device_map=device_map,
-        load_in_4bit=True,
-        use_cache=False,
-    )
-    
-    model = FastLanguageModel.get_peft_model(
-        model,
-        r=16, 
-        target_modules = ["q_proj", "k_proj", "v_proj", "o_proj",
-                          "gate_proj", "up_proj", "down_proj"],
-        lora_alpha=16,
-        lora_dropout=0, # Supports any, but = 0 is optimized
-        bias="none",    # Supports any, but = "none" is optimized
-        use_gradient_checkpointing=True,
-        random_state=3407,
-        use_rslora=False,  # We support rank stabilized LoRA
-        loftq_config=None, # And LoftQ
-    )
-    
-    model.print_trainable_parameters()
-
-    # apply chat template
-    if use_chatml_template:
-        tokenizer = apply_chat_template(tokenizer)
-
-        # resize tokenizer length
-        model.resize_token_embeddings(len(tokenizer))
-
     return model, tokenizer
 
 
