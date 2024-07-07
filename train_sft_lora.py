@@ -14,24 +14,22 @@ from transformers import (
 from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 from peft import LoraConfig, PeftModel
 
-from validate import Validator
-import utils
+import model_utils
 import dataset_utils
 import fire
 
 os.environ["WANDB_PROJECT"]="LLM_FINETUNING"
 
 def main(
-    run_name="sft_gemma_lora",
-    train_batch_size = 2,
-    max_seq_length = 2048,
-    train_samples=5000,
-    val_samples=500,
-    device_map="cuda:0"
+    run_name: str = "sft_gemma_lora",
+    train_batch_size : int = 2,
+    max_seq_length: int = 2048,
+    train_samples: int = 5000,
+    val_samples: int = 500
 ):
     # load model, tokenizer
     model_path = "models/gemma-2b-it"
-    model, tokenizer = utils.load_model_lora(model_path, device_map=device_map)
+    model, tokenizer = model_utils.load_model_lora(model_path)
 
     # load dataset
     dataset_name = 'CarperAI/openai_summarize_tldr'
@@ -49,9 +47,6 @@ def main(
 
     print("train", train_dataset.num_rows)
     print("val", val_dataset.num_rows)
-
-    # load rogue validator
-    validator = Validator(metric="rouge")
 
     # define train configs
     collator = DataCollatorForCompletionOnlyLM(

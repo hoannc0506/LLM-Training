@@ -6,7 +6,12 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 import fire
 
-def load_model(model_name_or_path, device_map="cuda", use_chatml_template=False):
+if "CUDA_VISIBLE_DEVICES" in os.environ:
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    devices = os.environ["CUDA_VISIBLE_DEVICES"]
+    print(f"'CUDA_VISIBLE_DEVICES' is currently {devices} \n")
+
+def load_model(model_name_or_path, use_chatml_template=False):
     print("Loading tokenizer and model from:", model_name_or_path)
     
     # load tokenizer
@@ -17,9 +22,12 @@ def load_model(model_name_or_path, device_map="cuda", use_chatml_template=False)
     )
 
     # set device for multi GPU
-    if device_map=="all":
+    # if device_map=="all":
+    try:
         local_rank = os.environ["LOCAL_RANK"]
         device_map = f"cuda:{local_rank}"
+    except Exception as e:
+        print(e)
         
     # load model
     model = AutoModelForCausalLM.from_pretrained(
@@ -38,7 +46,8 @@ def load_model(model_name_or_path, device_map="cuda", use_chatml_template=False)
     
     return model, tokenizer
 
-def load_model_lora(model_name_or_path, device_map="cuda:0", use_chatml_template=False):
+
+def load_model_lora(model_name_or_path, use_chatml_template=False):
     print("Loading tokenizer and model, lora:", model_name_or_path)
     
     # load tokenizer
@@ -57,9 +66,12 @@ def load_model_lora(model_name_or_path, device_map="cuda:0", use_chatml_template
     )
     
     # set device for multi GPU
-    if device_map=="all":
+    try:
         local_rank = os.environ["LOCAL_RANK"]
         device_map = f"cuda:{local_rank}"
+    except Exception as e:
+        print(e)
+        pass
         
     # load model
     model = AutoModelForCausalLM.from_pretrained(

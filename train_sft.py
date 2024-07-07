@@ -15,7 +15,7 @@ from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
 from peft import LoraConfig, PeftModel
 
 from validate import Validator
-import utils
+import model_utils
 import dataset_utils
 import fire
 
@@ -30,7 +30,7 @@ def main(
 ):
     # load model, tokenizer
     model_path = "models/gemma-2b-it"
-    model, tokenizer = utils.load_model(model_path, mul)
+    model, tokenizer = model_utils.load_model(model_path)
 
     # load dataset
     dataset_name = 'CarperAI/openai_summarize_tldr'
