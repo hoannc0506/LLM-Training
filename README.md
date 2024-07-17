@@ -4,7 +4,7 @@
 - QLoRA
 - DDP
 
-## LLM Align
+## LLM Alignment
 - RLHF
 - DPO
 
