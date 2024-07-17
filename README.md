@@ -1,6 +1,6 @@
 # Finetune and align LLM models
 
-## LLM Efficient Fintuning
+## LLM Efficient Fine-tuning
 - QLoRA
 - DDP
 
