@@ -14,7 +14,7 @@ def load_summary_dataset(
     def get_summarize_prompt(conversation, summary) -> str:
         output_prompt = (
             "### Instruction: Below is infomation in a post. Write a summary of the information.\n"
-            f"### Text:\n{conversation.strip()}"
+            f"### Text:\n{conversation.strip()}\n"
             f"### Summary:\n{summary.strip()}"
         )
         return output_prompt
@@ -63,9 +63,9 @@ def load_mt_dataset(
 
     def get_translate_prompt(example):
         prompt = (
-            f"### Instruction: Translate this from {src_fullname} to {tgt_fullname}:"
-            f"\n### Text: {example[source_lang]}"
-            f"\n### Translation: {example[target_lang]}"
+            f"### Instruction: Translate this from {src_fullname} to {tgt_fullname}:\n"
+            f"### Text:\n{example[source_lang]}\n"
+            f"### Translation:\n{example[target_lang]}"
         )
 
         return prompt
@@ -110,10 +110,14 @@ def load_mmt_dataset(
 
     for lang_pair in lang_pairs:
         print(f"Loading {lang_pair} dataset")
-        loaded_dataset = load_mt_dataset(dataset_name_or_path, lang_pair, split,
-                                         max_seq_length, tokenizer)
-
-        processed_datasets.append(loaded_dataset)
+        try:
+            loaded_dataset = load_mt_dataset(dataset_name_or_path, lang_pair, split,
+                                             max_seq_length, tokenizer)
+            
+            processed_datasets.append(loaded_dataset)
+        except Exception as e:
+            print(e)
+            pass
 
     mmt_dataset = concatenate_datasets(processed_datasets)
     mmt_dataset = mmt_dataset.shuffle(seed=seed)
@@ -124,7 +128,7 @@ if __name__ == "__main__":
     model_path = "models/gemma-2-2b-it"
     tokenizer = model_utils.load_tokenizer(model_path)
     # mt_dataset = load_mt_dataset(tokenizer=tokenizer)
-    mmt_dataset = load_mmt_dataset(tokenizer=tokenizer)
+    mmt_dataset = load_mmt_dataset(tokenizer=tokenizer, split=f"validation[:200]")
     
     import pdb; pdb.set_trace()
     print(here)

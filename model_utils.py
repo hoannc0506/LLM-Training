@@ -12,7 +12,7 @@ if "CUDA_VISIBLE_DEVICES" in os.environ:
     print(f"'CUDA_VISIBLE_DEVICES' is currently {devices} \n")
 
 
-def load_tokenizer(model_name_or_path, set_eos_by_pad=False):
+def load_tokenizer(model_name_or_path):
     tokenizer = AutoTokenizer.from_pretrained(
         model_name_or_path,
         use_fast=True, # fast load tokenizer
@@ -76,7 +76,9 @@ def load_model_lora(model_name_or_path, use_chatml_template=False):
     except Exception as e:
         print(e)
         pass
-        
+
+    # attn_implm = "eager" if "gemma-2" in model_name_or_path else "flash_attention_2"
+    
     # load model
     model = AutoModelForCausalLM.from_pretrained(
         model_name_or_path,
