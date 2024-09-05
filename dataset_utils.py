@@ -42,6 +42,11 @@ def load_summary_dataset(
 
     return processed_dataset
 
+LANG_TABLE = {
+    "en": "English", "de": "German", "fr": "French", "cs": "Czech", "is": "Icelandic",
+    "zh": "Chinese", "ja": "Japanese", "ru": "Russian", "uk": "Ukrainian",
+    "ha": "Hausa", "ro": "Romanian", "gu": "Gujarati",
+}
 
 def load_mt_dataset(
     dataset_name_or_path: str = "haoranxu/ALMA-Human-Parallel",
@@ -50,12 +55,6 @@ def load_mt_dataset(
     max_seq_length: int = 256,
     tokenizer: AutoTokenizer = None
 ):
-    LANG_TABLE = {
-        "en": "English", "de": "German", "fr": "French", "cs": "Czech", "is": "Icelandic",
-        "zh": "Chinese", "ja": "Japanese", "ru": "Russian", "uk": "Ukrainian",
-        "ha": "Hausa", "ro": "Romanian", "gu": "Gujarati",
-    }
-
     langs = pair.split('-')
     source_lang, target_lang = langs[0], langs[1]
     src_fullname = LANG_TABLE[source_lang]
