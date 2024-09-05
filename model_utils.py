@@ -11,18 +11,25 @@ if "CUDA_VISIBLE_DEVICES" in os.environ:
     devices = os.environ["CUDA_VISIBLE_DEVICES"]
     print(f"'CUDA_VISIBLE_DEVICES' is currently {devices} \n")
 
-def load_model(model_name_or_path, use_chatml_template=False):
-    print("Loading tokenizer and model from:", model_name_or_path)
-    
-    # load tokenizer
+
+def load_tokenizer(model_name_or_path, set_eos_by_pad=False):
     tokenizer = AutoTokenizer.from_pretrained(
         model_name_or_path,
         use_fast=True, # fast load tokenizer
         padding_side='right' # custom for rotary position embedding
     )
+    
+    return tokenizer
+
+def load_model(model_name_or_path, use_chatml_template=False):
+    print("Loading tokenizer and model from:", model_name_or_path)
+    
+    # load tokenizer
+    tokenizer = load_tokenizer(model_name_or_path)
 
     # set device for multi GPU
     # if device_map=="all":
+    device_map = "auto"
     try:
         local_rank = os.environ["LOCAL_RANK"]
         device_map = f"cuda:{local_rank}"
@@ -51,11 +58,7 @@ def load_model_lora(model_name_or_path, use_chatml_template=False):
     print("Loading tokenizer and model, lora:", model_name_or_path)
     
     # load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_name_or_path,
-        use_fast=True, # fast load tokenizer
-        padding_side='right' # custom for rotary position embedding
-    )
+    tokenizer = load_tokenizer(model_name_or_path)
 
     # BitsAndBytes config
     bnb_config = BitsAndBytesConfig(
@@ -66,6 +69,7 @@ def load_model_lora(model_name_or_path, use_chatml_template=False):
     )
     
     # set device for multi GPU
+    device_map = "auto"
     try:
         local_rank = os.environ["LOCAL_RANK"]
         device_map = f"cuda:{local_rank}"
@@ -148,12 +152,13 @@ def download_model(model_name_or_path, output_dir):
         padding_side='right' # custom for rotary position embedding
     )
 
+    
     return output_dir
 
 
 if __name__ == "__main__":
-    fire.Fire()
-    # model_path = "models/gemma-2b-it"
-    # model, tokenizer = load_model_lora_unsloth(model_path)
+    # fire.Fire()
+    model_path = "models/gemma-2-2b-it"
+    model, tokenizer = load_model_lora(model_path)
     
-    # test_chat_template(tokenizer)
+    test_chat_template(tokenizer)

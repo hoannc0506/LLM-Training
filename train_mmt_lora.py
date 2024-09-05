@@ -18,41 +18,42 @@ import model_utils
 import dataset_utils
 import fire
 
-os.environ["WANDB_PROJECT"]="LLM_FINETUNING"
+os.environ["WANDB_PROJECT"]="mmt-ft-lora"
 
 def main(
-    run_name: str = "sft_gemma_lora",
+    model_path: str = "models/gemma-2-2b-it",
+    run_name: str = "ft_mmt_gemma2_lora",
     train_batch_size : int = 2,
-    max_seq_length: int = 2048,
-    train_samples: int = 5000,
-    val_samples: int = 500
+    max_seq_length: int = 256,
+    train_samples: int = 1000,
+    val_samples: int = 200
 ):
     # load model, tokenizer
-    model_path = "models/gemma-2-2b-it"
     model, tokenizer = model_utils.load_model_lora(model_path)
 
     # load dataset
-    dataset_name = 'CarperAI/openai_summarize_tldr'
-    train_dataset = dataset_utils.load_dataset(
-        dataset_name, tokenizer, 
+    dataset_name = "haoranxu/ALMA-Human-Parallel"
+    train_dataset = dataset_utils.load_mmt_dataset(
+        dataset_name,
         max_seq_length=max_seq_length, 
-        split=f"train[:{train_samples}]"
+        split=f"train[:{train_samples}]",
+        tokenizer=tokenizer
     )
-    val_dataset = dataset_utils.load_dataset(
-        dataset_name, 
-        tokenizer, 
+    val_dataset = dataset_utils.load_mmt_dataset(
+        dataset_name,
         max_seq_length=max_seq_length, 
-        split=f"valid[:{val_samples}]"
+        split=f"validation[:{val_samples}]",
+        tokenizer=tokenizer
     )
     
     print("train", train_dataset.num_rows)
     print("val", val_dataset.num_rows)
 
-    import pdb; pdb.set_trace()
+    # import pdb; pdb.set_trace()
     
     # define train configs
     collator = DataCollatorForCompletionOnlyLM(
-        response_template="### Summary:\n",                     
+        response_template="\n### Translation: ",                     
         tokenizer=tokenizer,
         mlm=False
     )
@@ -72,7 +73,7 @@ def main(
         warmup_ratio=0.1,
         logging_steps=20,
         save_steps=500,
-        save_total_limit=3,
+        save_total_limit=1,
         num_train_epochs=2,
         ddp_find_unused_parameters=False,
         group_by_length=True,
