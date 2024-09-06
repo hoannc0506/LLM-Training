@@ -6,6 +6,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import LoraConfig, get_peft_model
 import fire
 
+ATTN_IMPM = ['sdpa', 'eager', 'flash_attention_2']
 
 def load_tokenizer(model_name_or_path):
     tokenizer = AutoTokenizer.from_pretrained(
@@ -16,7 +17,7 @@ def load_tokenizer(model_name_or_path):
     
     return tokenizer
 
-def load_model(model_name_or_path, use_chatml_template=False):
+def load_model(model_name_or_path, device='cuda', flash_attn2=False, use_chatml_template=False):
     print("Loading tokenizer and model from:", model_name_or_path)
     
     # load tokenizer
@@ -26,8 +27,8 @@ def load_model(model_name_or_path, use_chatml_template=False):
     model = AutoModelForCausalLM.from_pretrained(
         model_name_or_path,
         torch_dtype=torch.bfloat16,
-        device_map='cuda',
-        attn_implementation="flash_attention_2" # enable flash attention
+        device_map=device,
+        attn_implementation="flash_attention_2" if flash_attn2 else "sdpa" # enable flash attention
     )
 
     # apply chat template
@@ -40,7 +41,7 @@ def load_model(model_name_or_path, use_chatml_template=False):
     return model, tokenizer
 
 
-def load_quantized_model(model_name_or_path, device="cuda"):
+def load_quantized_model(model_name_or_path, device="cuda", flash_attn2=False):
     print("Loading tokenizer and model with quantization config from:", model_name_or_path)
     
     # load tokenizer
@@ -60,12 +61,12 @@ def load_quantized_model(model_name_or_path, device="cuda"):
         quantization_config=bnb_config,
         torch_dtype=torch.bfloat16,
         device_map=device,
-        attn_implementation="flash_attention_2" # enable flash attention
+        attn_implementation="flash_attention_2" if flash_attn2 else "sdpa" # enable flash attention
     )
 
     return model, tokenizer
 
-def load_model_lora(model_name_or_path, use_chatml_template=False):
+def load_model_lora(model_name_or_path, device="cuda", use_chatml_template=False):
     print("Loading tokenizer and model, lora:", model_name_or_path)
     
     # load tokenizer
@@ -79,23 +80,12 @@ def load_model_lora(model_name_or_path, use_chatml_template=False):
         bnb_4bit_compute_dtype=torch.bfloat16
     )
     
-    # set device for multi GPU
-    device_map = "auto"
-    try:
-        local_rank = os.environ["LOCAL_RANK"]
-        device_map = f"cuda:{local_rank}"
-    except Exception as e:
-        print(e)
-        pass
-
-    # attn_implm = "eager" if "gemma-2" in model_name_or_path else "flash_attention_2"
-    
     # load model
     model = AutoModelForCausalLM.from_pretrained(
         model_name_or_path,
         quantization_config=bnb_config,
         device_map=device_map,
-        attn_implementation="flash_attention_2" # enable flash attention
+        attn_implementation="flash_attention_2" if flash_attn2 else "sdpa"
     )
 
     model.gradient_checkpointing_enable()
@@ -172,6 +162,6 @@ def download_model(model_name_or_path, output_dir):
 if __name__ == "__main__":
     # fire.Fire()
     model_path = "models/gemma-2-2b-it"
-    model, tokenizer = load_model_lora(model_path)
+    model, tokenizer = load_quantized_model(model_path)
     
     test_chat_template(tokenizer)
