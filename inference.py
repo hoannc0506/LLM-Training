@@ -36,7 +36,7 @@ def summarize(model, tokenizer, text: str):
 
 def get_translate_prompt(input_text, src_lang, tgt_lang):
     prompt = (
-        f"### Instruction: Translate this from {LANG_TABLE[src_lang]} to {LANG_TABLE[tgt_lang]}:\n"
+        f"### Instruction: Translate this from {LANG_TABLE[src_lang]} to {LANG_TABLE[tgt_lang]}, no explaination\n"
         f"### Text:\n{input_text}\n"
         f"### Translation:\n"
     )
@@ -51,7 +51,9 @@ def translate(model, tokenizer, input_text, pair='de-en'):
         get_translate_prompt(input_text, src_lang, tgt_lang), 
         return_tensors="pt"
     ).to(model.device)
-    
+
+    # import pdb; pdb.set_trace()
+
     with torch.no_grad():
         out_ids = model.generate(
             **inputs,
@@ -63,7 +65,7 @@ def translate(model, tokenizer, input_text, pair='de-en'):
             repetition_penalty=1.05,
         )
         
-    return tokenizer.batch_decode(out_ids[:, input_ids.size(1):], skip_special_tokens=True)[0].strip()
+    return tokenizer.batch_decode(out_ids[:, inputs['input_ids'].size(1):], skip_special_tokens=True)[0].strip()
 
 
 
@@ -76,7 +78,7 @@ if __name__ == "__main__":
     pair = "de-en"
     translate_src_text = "Die Ware hat unter 20 Euro gekostet."
 
-    reponse = translate(model, tokenizer, translate_src_text, pair)
+    response = translate(model, tokenizer, translate_src_text, pair)
     
     print(response)
     

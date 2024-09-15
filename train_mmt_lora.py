@@ -54,12 +54,6 @@ def main(
     # import pdb; pdb.set_trace()
     response_template = "### Translation:\n"
     response_template_ids = tokenizer.encode(response_template, add_special_tokens=False)[2:]
-    # define train configs
-    collator = DataCollatorForCompletionOnlyLM(
-        response_template_ids,
-        tokenizer=tokenizer,
-        mlm=False
-    )
 
     output_dir = f"trains/{run_name}"
     os.makedirs(output_dir, exist_ok=True)
@@ -84,6 +78,13 @@ def main(
         group_by_length=True,
         report_to="wandb",  # enable logging to W&B
         run_name=run_name,  # name of the W&B run (optional)
+    )
+
+    # init train collator
+    collator = DataCollatorForCompletionOnlyLM(
+        response_template_ids,
+        tokenizer=tokenizer,
+        mlm=False
     )
     
     # Trainer

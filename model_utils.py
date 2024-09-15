@@ -8,12 +8,15 @@ import fire
 
 ATTN_IMPM = ['sdpa', 'eager', 'flash_attention_2']
 
-def load_tokenizer(model_name_or_path):
+def load_tokenizer(model_name_or_path, set_pad_by_eos=True):
     tokenizer = AutoTokenizer.from_pretrained(
         model_name_or_path,
         use_fast=True, # fast load tokenizer
         padding_side='right' # custom for rotary position embedding
     )
+
+    # if set_pad_by_eos:
+    #     tokenizer.
     
     return tokenizer
 
@@ -66,7 +69,7 @@ def load_quantized_model(model_name_or_path, device="cuda", flash_attn2=False):
 
     return model, tokenizer
 
-def load_model_lora(model_name_or_path, device="cuda", use_chatml_template=False):
+def load_model_lora(model_name_or_path, device="cuda", flash_attn2=False, use_chatml_template=False):
     print("Loading tokenizer and model, lora:", model_name_or_path)
     
     # load tokenizer
@@ -84,7 +87,7 @@ def load_model_lora(model_name_or_path, device="cuda", use_chatml_template=False
     model = AutoModelForCausalLM.from_pretrained(
         model_name_or_path,
         quantization_config=bnb_config,
-        device_map=device_map,
+        device_map=device,
         attn_implementation="flash_attention_2" if flash_attn2 else "sdpa"
     )
 
@@ -99,7 +102,7 @@ def load_model_lora(model_name_or_path, device="cuda", use_chatml_template=False
         task_type="CAUSAL_LM"
     )
     model = get_peft_model(model, config)
-    # model.print_trainable_parameters()
+    model.print_trainable_parameters()
 
     # apply chat template
     if use_chatml_template:
